@@ -85,7 +85,6 @@ class VllmModel(LanguageModel):
               - answers: The expected answers from the evaluation examples.
               - reasoning_output: This is always empty for vllm models.
         """
-        breakpoint()
         all_outputs = []
         answers = []
         messages = []
