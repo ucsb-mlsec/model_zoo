@@ -85,21 +85,23 @@ class VllmModel(LanguageModel):
               - answers: The expected answers from the evaluation examples.
               - reasoning_output: This is always empty for vllm models.
         """
+        breakpoint()
         all_outputs = []
         answers = []
         messages = []
         reasoning_outputs = []
-        self.sampling_params = (
-            SamplingParams(
-                n=n,
-                temperature=temperature or self.temperature or 0,
-                top_k=top_k,
-                top_p=top_p,
-                max_tokens=max_tokens,
-            )
-            if self.sampling_params is None
-            else self.sampling_params
-        )
+        sampling_params = (
+                SamplingParams(
+                    n=n,
+                    temperature=temperature or self.temperature or 0,
+                    top_k=top_k,
+                    top_p=top_p,
+                    max_tokens=max_tokens,
+                )
+            ) 
+        if self.sampling_params:
+            if temperature==0 and top_p==1 and top_k == -1 and max_tokens == 1024 and n ==1: #default
+                sampling_params = self.sampling_params
         for example in eval_examples:
             if system_prompt:
                 messages.append(
@@ -112,7 +114,7 @@ class VllmModel(LanguageModel):
                 messages.append([{"role": "user", "content": example["input"]}])
             answers.append(example["output"])
 
-        resps = self.model.chat(messages=messages, sampling_params=self.sampling_params)
+        resps = self.model.chat(messages=messages, sampling_params=sampling_params)
         outputs = [[out.text for out in response.outputs] for response in resps]
         all_outputs.extend(outputs)
 
