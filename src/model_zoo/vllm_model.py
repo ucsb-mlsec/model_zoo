@@ -88,7 +88,6 @@ class VllmModel(LanguageModel):
         all_outputs = []
         answers = []
         messages = []
-        reasoning_outputs = []
         sampling_params = (
                 SamplingParams(
                     n=n,
@@ -117,11 +116,10 @@ class VllmModel(LanguageModel):
         outputs = [[out.text for out in response.outputs] for response in resps]
         all_outputs.extend(outputs)
 
-        reasoning_outputs = [[""]] * len(all_outputs)
 
         if not all(all_outputs):
             print("empty response detected")
-        return all_outputs, answers, reasoning_outputs
+        return all_outputs, answers
 
     def query_once(
         self,

@@ -14,7 +14,6 @@ class HuggingFaceModel(LanguageModel):
         do_sample=False,
         top_k=None,
         top_p=None,
-        reasoning=False,
         batch_size=8,
         seed=42,
         quantization=False,
@@ -51,7 +50,6 @@ class HuggingFaceModel(LanguageModel):
         else:
             self.tokenizer = tokenizer
 
-        self.reasoning = reasoning
         self.batch_size = batch_size
         self.seed = seed
         vars(self).update(kwargs)
@@ -115,7 +113,6 @@ class HuggingFaceModel(LanguageModel):
         all_outputs = []
         answers = []
         messages = []
-        reasoning_output = []
         batch_size = batch_size or self.batch_size
 
         orig_do_sample = self.model.generation_config.do_sample
@@ -182,9 +179,6 @@ class HuggingFaceModel(LanguageModel):
                 )
                 all_outputs.extend(batch_outputs)
 
-        if self.reasoning:
-            # This is a placeholder since HF models currently do not return reasoning_content.
-            reasoning_output = [[""]] * len(all_outputs)
 
         if not all(all_outputs):
             print("empty response detected")
@@ -195,7 +189,7 @@ class HuggingFaceModel(LanguageModel):
         self.model.generation_config.top_p = orig_top_p
         self.model.generation_config.top_k = orig_top_k
 
-        return all_outputs, answers, reasoning_output
+        return all_outputs, answers
 
     def query_once(
         self,
