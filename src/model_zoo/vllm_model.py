@@ -14,6 +14,7 @@ class VllmModel(LanguageModel):
         top_p=1,
         seed=42,
         sampling_params=None,
+        revision=None,
         **kwargs,
     ):
         """
@@ -26,7 +27,7 @@ class VllmModel(LanguageModel):
         """
         super().__init__(model)
         self.sampling_params = sampling_params
-        self.model = LLM(model, tensor_parallel_size=num_gpus)
+        self.model = LLM(model, tensor_parallel_size=num_gpus, revision=revision)
         self.temperature = temperature
         self.top_k = top_k
         self.top_p = top_p
@@ -88,17 +89,21 @@ class VllmModel(LanguageModel):
         all_outputs = []
         answers = []
         messages = []
-        sampling_params = (
-                SamplingParams(
-                    n=n,
-                    temperature=temperature or self.temperature or 0,
-                    top_k=top_k,
-                    top_p=top_p,
-                    max_tokens=max_tokens,
-                )
-            ) 
+        sampling_params = SamplingParams(
+            n=n,
+            temperature=temperature or self.temperature or 0,
+            top_k=top_k,
+            top_p=top_p,
+            max_tokens=max_tokens,
+        )
         if self.sampling_params:
-            if temperature==0 and top_p==1 and top_k == -1 and max_tokens == 1024 and n ==1: #default
+            if (
+                temperature == 0
+                and top_p == 1
+                and top_k == -1
+                and max_tokens == 1024
+                and n == 1
+            ):  # default
                 sampling_params = self.sampling_params
         for example in eval_examples:
             if system_prompt:
@@ -115,7 +120,6 @@ class VllmModel(LanguageModel):
         resps = self.model.chat(messages=messages, sampling_params=sampling_params)
         outputs = [[out.text for out in response.outputs] for response in resps]
         all_outputs.extend(outputs)
-
 
         if not all(all_outputs):
             print("empty response detected")
