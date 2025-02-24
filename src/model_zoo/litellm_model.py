@@ -220,6 +220,10 @@ class LiteLLMModel(LanguageModel):
         response = client.chat.completions.create(
             model="deepseek-ai/DeepSeek-R1",
             messages=messages,  # Using the provided messages
+            n=n,  # Number of completions to generate
+            temperature=temperature,
+            max_tokens=max_tokens,
+            top_p=top_p,
         )
         # Convert the response to a structure similar to litellm's response format
         choices = []
