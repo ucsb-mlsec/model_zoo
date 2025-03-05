@@ -124,18 +124,16 @@ class VllmModel(LanguageModel):
         all_outputs.extend(outputs)
 
         # Count tokens for both input and output
-        for example, outs in zip(eval_examples, outputs):
-            # Combine system prompt with user input if available
-            input_text = f"{system_prompt} {example['input']}" if system_prompt else example["input"]
-            input_token_count = len(input_text.split())
-            for out in outs:
-                output_token_count = len(out.split())
-                tokens["input_token"].append(input_token_count)
-                tokens["output_token"].append(output_token_count)
+        for response in resps:
+            tokens["input_token"].append([len(response.prompt_token_ids)])
+            tokens["output_token"].append([len(out.token_ids) for out in response.outputs])
 
         if not all(all_outputs):
             print("empty response detected")
-        latencies = [response.metrics.last_token_time-response.metrics.first_token_time for response in resps]
+        if n==1:
+            latencies = [response.metrics.last_token_time-response.metrics.first_token_time for response in resps]
+        else:
+            latencies = [-1 for _ in resps]
         return all_outputs, answers, latencies, tokens
 
     def query_once(
