@@ -1,5 +1,5 @@
 import torch
-
+import time
 from model_zoo.language_model import LanguageModel
 from vllm import LLM, SamplingParams
 
@@ -89,6 +89,7 @@ class VllmModel(LanguageModel):
         all_outputs = []
         answers = []
         messages = []
+        tokens = {"input_token": [], "output_token": []}
         sampling_params = SamplingParams(
             n=n,
             temperature=temperature or self.temperature or 0,
@@ -118,12 +119,24 @@ class VllmModel(LanguageModel):
             answers.append(example["output"])
 
         resps = self.model.chat(messages=messages, sampling_params=sampling_params)
+
         outputs = [[out.text for out in response.outputs] for response in resps]
         all_outputs.extend(outputs)
 
+        # Count tokens for both input and output
+        for example, outs in zip(eval_examples, outputs):
+            # Combine system prompt with user input if available
+            input_text = f"{system_prompt} {example['input']}" if system_prompt else example["input"]
+            input_token_count = len(input_text.split())
+            for out in outs:
+                output_token_count = len(out.split())
+                tokens["input_token"].append(input_token_count)
+                tokens["output_token"].append(output_token_count)
+
         if not all(all_outputs):
             print("empty response detected")
-        return all_outputs, answers
+        latencies = [response.metrics.last_token_time-response.metrics.first_token_time for response in resps]
+        return all_outputs, answers, latencies, tokens
 
     def query_once(
         self,

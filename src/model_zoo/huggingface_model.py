@@ -114,6 +114,7 @@ class HuggingFaceModel(LanguageModel):
         answers = []
         messages = []
         batch_size = batch_size or self.batch_size
+        
 
         orig_do_sample = self.model.generation_config.do_sample
         self.model.generation_config.do_sample = do_sample
@@ -142,6 +143,7 @@ class HuggingFaceModel(LanguageModel):
                 messages.append([{"role": "user", "content": example["input"]}])
             answers.append(example["output"])
 
+        tokens = {"input_tokens": [], "output_tokens": []}
         input_data = self.tokenizer.apply_chat_template(
             messages,
             padding=True,
@@ -150,6 +152,7 @@ class HuggingFaceModel(LanguageModel):
             add_generation_prompt=True,
         )
         num_examples = len(messages)
+        tokens["input_tokens"].extend([len(ids) for ids in input_data["input_ids"]])
         with torch.no_grad():
             for batch_idx in trange(
                 0, num_examples, batch_size, desc="Running Batches"
@@ -178,6 +181,7 @@ class HuggingFaceModel(LanguageModel):
                     skip_special_tokens=True,
                 )
                 all_outputs.extend(batch_outputs)
+                tokens["output_tokens"].extend([len(g_ids) for g_ids in generated_ids])
 
 
         if not all(all_outputs):
@@ -189,7 +193,9 @@ class HuggingFaceModel(LanguageModel):
         self.model.generation_config.top_p = orig_top_p
         self.model.generation_config.top_k = orig_top_k
 
-        return all_outputs, answers
+        latencies = [-1 for _ in range(len(messages))] #dummy latencies
+
+        return all_outputs, answers, latencies, tokens
 
     def query_once(
         self,

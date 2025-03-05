@@ -98,6 +98,9 @@ class LiteLLMModel(LanguageModel):
             )
         )
 
+        latencies = []
+        tokens = {"input_token": [], "output_token": []}
+
         # Process each response, extract generated text (and reasoning if applicable)
         for outputs in resps:
             if outputs:
@@ -115,13 +118,28 @@ class LiteLLMModel(LanguageModel):
                 except Exception:
                     pass
                 all_outputs.append(content)
+                latencies.append(outputs.get("latency", None))
+                input_text = (system_prompt + " " + example["input"]) if system_prompt else example["input"]
+                input_token_count = len(input_text.split())
+                for out in content:
+                    output_token_count = len(out.split())
+                    tokens["input_token"].append(input_token_count)
+                    tokens["output_token"].append(output_token_count)
             else:
                 all_outputs.append([""])
+                latencies.append(None)
+                input_text = (system_prompt + " " + example["input"]) if system_prompt else example["input"]
+                input_token_count = len(input_text.split())
+                for i in range(n):
+                    tokens["input_token"].append(input_token_count)
+                    tokens["output_token"].append(0)
 
         if not all(all_outputs):
             print("empty response detected")
 
-        return all_outputs, answers
+        latencies = [-1 for _ in range(len(all_outputs))] #dummy latencies
+
+        return all_outputs, answers, latencies, tokens
 
     async def batch_chat_completion(
         self, messages_lst, temperature=None, top_p=None, max_tokens=None, n=1
@@ -152,7 +170,8 @@ class LiteLLMModel(LanguageModel):
         Ensure the API call is rate-limited using the provided limiter.
         """
         async with self.limiter:
-            return await self.__chat_function__(
+            start_time = asyncio.get_running_loop().time()
+            result = await self.__chat_function__(
                 chat=litellm.acompletion,
                 messages=messages,
                 temperature=temperature,
@@ -160,6 +179,10 @@ class LiteLLMModel(LanguageModel):
                 max_tokens=max_tokens,
                 n=n,
             )
+            end_time = asyncio.get_running_loop().time()
+            if result is not None:
+                result["latency"] = end_time - start_time
+            return result
 
     async def __chat_function__(
         self, chat, messages, temperature=None, top_p=None, max_tokens=None, n=1
