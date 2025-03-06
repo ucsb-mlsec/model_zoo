@@ -73,7 +73,7 @@ class VllmModel(LanguageModel):
 
         Parameters:
             top_k: int, optional: The number of highest probability vocabulary tokens to keep for top-k sampling.
-            eval_examples (list): A list of dictionaries, each with keys "input" and "output".
+            eval_examples (list): A list of dictionaries, each with keys "input" and "output". If it contains "assistant", the assistant message is included.
             system_prompt (str): A system prompt to include in the messages (optional).
             temperature (float): Sampling temperature.
             top_p (float): Top-p nucleus sampling value.
@@ -96,6 +96,7 @@ class VllmModel(LanguageModel):
             top_k=top_k,
             top_p=top_p,
             max_tokens=max_tokens,
+            **kwargs,
         )
         if self.sampling_params:
             if (
@@ -107,15 +108,12 @@ class VllmModel(LanguageModel):
             ):  # default
                 sampling_params = self.sampling_params
         for example in eval_examples:
+            item = [{"role": "user", "content": example["input"]}]
             if system_prompt:
-                messages.append(
-                    [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": example["input"]},
-                    ]
-                )
-            else:
-                messages.append([{"role": "user", "content": example["input"]}])
+                item.append({"role": "system", "content": system_prompt})
+            if "assistant" in example:
+                item.append({"role": "assistant", "content": example["assistant"]})
+            messages.append(item)
             answers.append(example["output"])
 
         resps = self.model.chat(messages=messages, sampling_params=sampling_params)
