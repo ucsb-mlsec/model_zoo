@@ -124,7 +124,7 @@ class VllmModel(LanguageModel):
         # Count tokens for both input and output
         for response in resps:
             tokens["input_token"].append(len(response.prompt_token_ids))
-            tokens["output_token"].append(sum(len(out.token_ids)) for out in response.outputs)
+            tokens["output_token"].append(sum(len(out.token_ids) for out in response.outputs))
 
         if not all(all_outputs):
             print("empty response detected")
