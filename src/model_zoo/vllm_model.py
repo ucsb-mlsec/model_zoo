@@ -108,9 +108,10 @@ class VllmModel(LanguageModel):
             ):  # default
                 sampling_params = self.sampling_params
         for example in eval_examples:
-            item = [{"role": "user", "content": example["input"]}]
+            item = []
             if system_prompt:
                 item.append({"role": "system", "content": system_prompt})
+            item.append({"role": "user", "content": example["input"]})
             if "assistant" in example:
                 item.append({"role": "assistant", "content": example["assistant"]})
             messages.append(item)
