@@ -1,5 +1,4 @@
 import torch
-import time
 from model_zoo.language_model import LanguageModel
 from vllm import LLM, SamplingParams
 
@@ -125,12 +124,20 @@ class VllmModel(LanguageModel):
         # Count tokens for both input and output
         for response in resps:
             tokens["input_token"].append(len(response.prompt_token_ids))
-            tokens["output_token"].append(sum(len(out.token_ids) for out in response.outputs))
+            tokens["output_token"].append(
+                sum(len(out.token_ids) for out in response.outputs)
+            )
 
         if not all(all_outputs):
             print("empty response detected")
-        if n==1:
-            latencies = [response.metrics.last_token_time-response.metrics.first_token_time for response in resps]
+        if n == 1:
+            try:
+                latencies = [
+                    response.metrics.last_token_time - response.metrics.first_token_time
+                    for response in resps
+                ]
+            except Exception:
+                latencies = [-1 for _ in resps]
         else:
             latencies = [-1 for _ in resps]
         return all_outputs, answers, latencies, tokens
