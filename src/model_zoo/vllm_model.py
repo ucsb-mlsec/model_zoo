@@ -40,6 +40,7 @@ class VllmModel(LanguageModel):
 
         if self.seed is not None:
             torch.manual_seed(self.seed)
+            self.sampling_params.seed = self.seed
 
     def __str__(self):
         return f"VllmModel(model={self.model.__str__()})"
@@ -95,6 +96,7 @@ class VllmModel(LanguageModel):
             top_k=top_k,
             top_p=top_p,
             max_tokens=max_tokens,
+            seed=self.seed,
             **kwargs,
         )
         if self.sampling_params:
