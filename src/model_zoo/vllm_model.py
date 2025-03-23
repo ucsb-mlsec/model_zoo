@@ -66,12 +66,14 @@ class VllmModel(LanguageModel):
         top_k=-1,
         max_tokens=1024,
         n=1,
+        continue_final_message=False,
         **kwargs,
     ):
         """
         Run the model on a list of evaluation examples.
 
         Parameters:
+            continue_final_message: bool: Whether to continue the final message.
             top_k: int, optional: The number of highest probability vocabulary tokens to keep for top-k sampling.
             eval_examples (list): A list of dictionaries, each with keys "input" and "output". If it contains "assistant", the assistant message is included.
             system_prompt (str): A system prompt to include in the messages (optional).
@@ -118,7 +120,12 @@ class VllmModel(LanguageModel):
             messages.append(item)
             answers.append(example["output"])
 
-        resps = self.model.chat(messages=messages, sampling_params=sampling_params)
+        resps = self.model.chat(
+            messages=messages,
+            sampling_params=sampling_params,
+            continue_final_message=continue_final_message,
+            add_generation_prompt=True if not continue_final_message else False,
+        )
 
         outputs = [[out.text for out in response.outputs] for response in resps]
         all_outputs.extend(outputs)
