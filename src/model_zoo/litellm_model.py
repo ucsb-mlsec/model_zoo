@@ -85,7 +85,7 @@ class LiteLLMModel(LanguageModel):
             else:
                 # Otherwise, only include the user message
                 messages.append([{"role": "user", "content": example["input"]}])
-            answers.append(example["output"])
+            answers.append(example["output"] if "output" in example else None)
 
         # Run asynchronous batch chat completions
         resps = asyncio.run(
