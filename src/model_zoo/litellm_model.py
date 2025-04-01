@@ -214,6 +214,7 @@ class LiteLLMModel(LanguageModel):
                 try:
                     ret = await chat(
                         model=self.model,
+                        api_key = self.api_key,
                         messages=messages,
                         temperature=temperature or self.temperature,
                         top_p=top_p or 1.0,
