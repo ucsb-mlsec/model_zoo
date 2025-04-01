@@ -13,6 +13,7 @@ class LiteLLMModel(LanguageModel):
         self,
         model,
         server_url=None,
+        api_key=None,
         limiter=None,
         temperature=0,
         seed=42,
@@ -23,6 +24,8 @@ class LiteLLMModel(LanguageModel):
         self.server_url = server_url
         if self.server_url:
             litellm.api_base = self.server_url
+        if api_key:
+            litellm.api_key = api_key
         self.limiter = limiter
         self.temperature = temperature
         self.seed = seed
