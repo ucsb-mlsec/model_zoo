@@ -24,6 +24,7 @@ class LiteLLMModel(LanguageModel):
         self.server_url = server_url
         if self.server_url:
             litellm.api_base = self.server_url
+        self.api_key = api_key
         if api_key:
             litellm.api_key = api_key
         self.limiter = limiter
