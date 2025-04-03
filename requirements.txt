@@ -1,6 +1,6 @@
-aiolimiter==1.2.1
-auto_mix_prep==0.2.0
-litellm==1.63.5
-torch<=2.6.0
+aiolimiter
+auto_mix_prep
+litellm
+torch
 tqdm
-transformers<=4.48.3
+transformers
