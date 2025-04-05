@@ -4,3 +4,4 @@ litellm
 torch
 tqdm
 transformers
+together

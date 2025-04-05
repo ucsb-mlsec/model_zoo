@@ -92,6 +92,13 @@ class LiteLLMModel(LanguageModel):
             answers.append(example["output"] if "output" in example else None)
 
         # Run asynchronous batch chat completions
+        if hasattr(self, "reasoning_effort"):
+            temperature = 1
+            reasoning_effort = self.reasoning_effort
+            top_p = None
+        else:
+            temperature = temperature or self.temperature
+            reasoning_effort = None
         resps = asyncio.run(
             self.batch_chat_completion(
                 messages,
@@ -99,9 +106,9 @@ class LiteLLMModel(LanguageModel):
                 top_p=top_p,
                 max_tokens=max_tokens,
                 n=n,
+                reasoning_effort=reasoning_effort,
             )
         )
-
 
         tokens = {"input_token": [], "output_token": []}
 
@@ -118,6 +125,13 @@ class LiteLLMModel(LanguageModel):
                         out["message"]["reasoning_content"]
                         for out in outputs["choices"]
                     ]
+                    # one special case in Claude reasoning, they basically repeat the reasoning in content...
+                    # so we need to remove the remaining part in content
+                    if "claude" in self.model:
+                        content = [
+                            "## Final Answer" + c.split("## Final Answer")[-1] if "## Final Answer" in c else c
+                            for c in content
+                        ]
                     content = [f"{r}\n\n{c}" for r, c in zip(reasoning, content)]
                 except Exception:
                     pass
@@ -133,16 +147,21 @@ class LiteLLMModel(LanguageModel):
                 tokens["input_token"].append(0)
                 tokens["output_token"].append(0)
 
-
         if not all(all_outputs):
             print("empty response detected")
-        
+
         latencies = [-1 for _ in resps]
 
         return all_outputs, answers, latencies, tokens
 
     async def batch_chat_completion(
-        self, messages_lst, temperature=None, top_p=None, max_tokens=None, n=1
+        self,
+        messages_lst,
+        temperature=None,
+        top_p=1.0,
+        max_tokens=None,
+        n=1,
+        reasoning_effort=None,
     ):
         """
         Run asynchronous batch requests for chat completion.
@@ -158,13 +177,20 @@ class LiteLLMModel(LanguageModel):
                 top_p=top_p,
                 max_tokens=max_tokens,
                 n=n,
+                reasoning_effort=reasoning_effort,
             )
             for message in messages_lst
         ]
         return await tqdm_asyncio.gather(*tasks, desc="🔥 Running Async Batch Requests")
 
     async def __rate_limited_api_call__(
-        self, messages, temperature=None, top_p=None, max_tokens=None, n=1
+        self,
+        messages,
+        temperature=None,
+        top_p=1.0,
+        max_tokens=None,
+        n=1,
+        reasoning_effort=None,
     ):
         """
         Ensure the API call is rate-limited using the provided limiter.
@@ -177,11 +203,19 @@ class LiteLLMModel(LanguageModel):
                 top_p=top_p,
                 max_tokens=max_tokens,
                 n=n,
+                reasoning_effort=reasoning_effort,
             )
             return result
 
     async def __chat_function__(
-        self, chat, messages, temperature=None, top_p=None, max_tokens=None, n=1
+        self,
+        chat,
+        messages,
+        temperature=None,
+        top_p=1.0,
+        max_tokens=None,
+        n=1,
+        reasoning_effort=None,
     ):
         """
         Internal chat function with retry logic.
@@ -196,7 +230,7 @@ class LiteLLMModel(LanguageModel):
                         self._together_deepseek_chat,
                         messages,
                         temperature or self.temperature,
-                        top_p or 1.0,
+                        top_p,
                         max_tokens or 256,
                         n,
                     )
@@ -214,13 +248,14 @@ class LiteLLMModel(LanguageModel):
                 try:
                     ret = await chat(
                         model=self.model,
-                        api_key = self.api_key,
+                        api_key=self.api_key,
                         messages=messages,
                         temperature=temperature or self.temperature,
-                        top_p=top_p or 1.0,
+                        top_p=top_p,
                         max_tokens=max_tokens or 256,
                         seed=self.seed or 42,
                         n=n,
+                        reasoning_effort=reasoning_effort,
                     )
                     return ret
                 except Exception as e:
