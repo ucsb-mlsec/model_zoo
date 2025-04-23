@@ -1,4 +1,6 @@
 import asyncio
+import time
+
 import litellm
 import re
 from tqdm.asyncio import tqdm_asyncio
@@ -99,7 +101,7 @@ class LiteLLMModel(LanguageModel):
         else:
             temperature = temperature or self.temperature
             reasoning_effort = None
-        resps = asyncio.run(
+        resps, latencies = asyncio.run(
             self.batch_chat_completion(
                 messages,
                 temperature=temperature or self.temperature,
@@ -129,15 +131,17 @@ class LiteLLMModel(LanguageModel):
                     # so we need to remove the remaining part in content
                     if "claude" in self.model:
                         content = [
-                            "## Final Answer" + c.split("## Final Answer")[-1] if "## Final Answer" in c else c
+                            "## Final Answer" + c.split("## Final Answer")[-1]
+                            if "## Final Answer" in c
+                            else c
                             for c in content
                         ]
                     content = [f"{r}\n\n{c}" for r, c in zip(reasoning, content)]
                 except Exception:
                     pass
                 try:
-                    tokens["input_token"].append(resps[0].usage.prompt_tokens)
-                    tokens["output_token"].append(resps[0].usage.completion_tokens)
+                    tokens["input_token"].append(outputs.usage.prompt_tokens)
+                    tokens["output_token"].append(outputs.usage.completion_tokens)
                 except Exception:
                     tokens["input_token"].append(0)
                     tokens["output_token"].append(0)
@@ -149,8 +153,8 @@ class LiteLLMModel(LanguageModel):
 
         if not all(all_outputs):
             print("empty response detected")
-
-        latencies = [-1 for _ in resps]
+        if not latencies:
+            latencies = [-1 for _ in resps]
 
         return all_outputs, answers, latencies, tokens
 
@@ -181,7 +185,16 @@ class LiteLLMModel(LanguageModel):
             )
             for message in messages_lst
         ]
-        return await tqdm_asyncio.gather(*tasks, desc="🔥 Running Async Batch Requests")
+        start_time = time.perf_counter()  # Record start time
+        results = await tqdm_asyncio.gather(
+            *tasks, desc="🔥 Running Async Batch Requests"
+        )
+        end_time = time.perf_counter()  # Record end time
+        # Calculate latencies for each task
+        latencies = [end_time - start_time] * len(
+            results
+        )  # Use the same latency for all tasks
+        return results, latencies
 
     async def __rate_limited_api_call__(
         self,

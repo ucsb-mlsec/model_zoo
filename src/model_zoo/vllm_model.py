@@ -1,3 +1,5 @@
+import time
+
 import torch
 from model_zoo.language_model import LanguageModel
 from vllm import LLM, SamplingParams
@@ -119,14 +121,17 @@ class VllmModel(LanguageModel):
                 item.append({"role": "assistant", "content": example["assistant"]})
             messages.append(item)
             answers.append(example["output"])
-
+        start_time = time.perf_counter()
         resps = self.model.chat(
             messages=messages,
             sampling_params=sampling_params,
             continue_final_message=continue_final_message,
             add_generation_prompt=True if not continue_final_message else False,
         )
-
+        end_time = time.perf_counter()
+        latencies = [end_time - start_time] * len(
+            resps
+        )  # Use the same latency for all tasks
         outputs = [[out.text for out in response.outputs] for response in resps]
         all_outputs.extend(outputs)
 
@@ -139,15 +144,7 @@ class VllmModel(LanguageModel):
 
         if not all(all_outputs):
             print("empty response detected")
-        if n == 1:
-            try:
-                latencies = [
-                    response.metrics.last_token_time - response.metrics.first_token_time
-                    for response in resps
-                ]
-            except Exception:
-                latencies = [-1 for _ in resps]
-        else:
+        if not latencies:
             latencies = [-1 for _ in resps]
         return all_outputs, answers, latencies, tokens
 
