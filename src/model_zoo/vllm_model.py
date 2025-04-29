@@ -69,6 +69,7 @@ class VllmModel(LanguageModel):
         max_tokens=1024,
         n=1,
         continue_final_message=False,
+        sampling_params2=None,
         **kwargs,
     ):
         """
@@ -112,6 +113,8 @@ class VllmModel(LanguageModel):
                 and n == 1
             ):  # default
                 sampling_params = self.sampling_params
+        if sampling_params2:
+            sampling_params = sampling_params2
         for example in eval_examples:
             item = []
             if system_prompt:
