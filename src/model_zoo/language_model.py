@@ -1,10 +1,10 @@
-class LanguageModel():
+class LanguageModel:
     def __init__(self, model):
-        self.model = model
+        self.model_name = model
         
         
     def __str__(self):
-       return f"LanguageModel(model={self.model})"
+       return f"LanguageModel(model={self.model_name})"
     
     def __repr__(self):
         return str(self)

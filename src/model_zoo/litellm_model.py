@@ -37,7 +37,7 @@ class LiteLLMModel(LanguageModel):
         vars(self).update(kwargs)
 
     def __str__(self):
-        return f"LiteLLMModel(model={self.model})"
+        return f"LiteLLMModel(model={self.model_name})"
 
     def __repr__(self):
         return str(self)
@@ -129,7 +129,7 @@ class LiteLLMModel(LanguageModel):
                     ]
                     # one special case in Claude reasoning, they basically repeat the reasoning in content...
                     # so we need to remove the remaining part in content
-                    if "claude" in self.model:
+                    if "claude" in self.model_name:
                         content = [
                             "## Final Answer" + c.split("## Final Answer")[-1]
                             if "## Final Answer" in c
@@ -260,7 +260,7 @@ class LiteLLMModel(LanguageModel):
             for i in range(5):
                 try:
                     ret = await chat(
-                        model=self.model,
+                        model=self.model_name,
                         api_key=self.api_key,
                         messages=messages,
                         temperature=temperature or self.temperature,
@@ -381,7 +381,7 @@ class LiteLLMModel(LanguageModel):
         else:
             try:
                 response = litellm.completion(
-                    model=self.model,
+                    model=self.model_name,
                     messages=messages,
                     temperature=temperature or self.temperature,
                     top_p=top_p or 1.0,

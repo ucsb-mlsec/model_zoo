@@ -27,7 +27,7 @@ class OpenAIModel(LanguageModel):
         vars(self).update(kwargs)
 
     def __str__(self):
-        return f"OpenAI(model={self.model})"
+        return f"OpenAI(model={self.model_name})"
 
     def __repr__(self):
         return str(self)
@@ -209,7 +209,7 @@ class OpenAIModel(LanguageModel):
         for i in range(5):
             try:
                 ret = await chat(
-                    model=self.model,
+                    model=self.model_name,
                     messages=messages,
                     temperature=temperature or self.temperature,
                     top_p=top_p,
@@ -243,7 +243,7 @@ class OpenAIModel(LanguageModel):
 
         try:
             response = self.client.chat.completions.create(
-                model=self.model,
+                model=self.model_name,
                 messages=messages,
                 temperature=temperature or self.temperature,
                 top_p=top_p or 1.0,
